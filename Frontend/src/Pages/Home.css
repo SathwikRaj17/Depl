@@ -1,0 +1,17 @@
+.Container
+{
+    margin: 2%;
+    margin-top: 3%;
+    display: flex;
+    justify-content:space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2vw;
+}
+*
+{
+    color: white;
+}
+html {
+    background-color: #222223;
+}
