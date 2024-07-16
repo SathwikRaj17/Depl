@@ -5,7 +5,7 @@ import SearchBar from '../Components/Search Box/SearchBox';
 import Cards from '../Components/Cards/Cards';
 import './Home.css';
 
-const API_BASE_URL = "/api";
+const API_BASE_URL = "https://depl-1.onrender.com/api";
 
 function fetchThumbnail(url) {
   return axios.post(`${API_BASE_URL}/getObject`, null, { headers: { 'url': url } })
