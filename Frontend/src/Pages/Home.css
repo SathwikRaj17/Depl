@@ -3,7 +3,7 @@
     margin: 2%;
     margin-top: 3%;
     display: flex;
-    justify-content:space-between;
+    justify-content:start;
     align-items: center;
     flex-wrap: wrap;
     gap: 2vw;
@@ -15,3 +15,16 @@
 html {
     background-color: #222223;
 }
+
+@media(max-width: 600px) {
+    .Container
+{
+    margin: 2%;
+    margin-top: 3%;
+    display: flex;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+  }

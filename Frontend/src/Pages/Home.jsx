@@ -22,27 +22,36 @@ function Home() {
   const [thumbnails, setThumbnails] = useState({});
 
   useEffect(() => {
-    axios.get(`${API_BASE_URL}/objectList`)
-      .then(response => {
+    const fetchItemsAndThumbnails = async () => {
+      try {
+        const response = await axios.get("/api/objectList");
         const items = response.data;
         setItems(items);
 
-        const fetchThumbnails = async () => {
-          const thumbnailsData = {};
-          for (const item of items) {
-            const url = await fetchThumbnail(item.Key);
-            thumbnailsData[item.Key] = url;
-          }
-          setThumbnails(thumbnailsData);
-        };
-
-        fetchThumbnails();
-      })
-      .catch(error => {
+        const thumbnailsData = {};
+        for (const item of items) {
+          const url = item.Key.substring(0, item.Key.indexOf(".")) + ".jpg";
+          thumbnailsData[item.Key] = await fetchThumbnail(url);
+        }
+        setThumbnails(thumbnailsData);
+      } catch (error) {
         console.error('Error fetching items:', error);
         nav('/error');
-      });
+      }
+    };
+
+    fetchItemsAndThumbnails();
   }, [nav]);
+
+  const handleCardClick = async (itemKey) => {
+    try {
+      const response = await axios.post("/api/streamObject", null, { headers: { 'url': itemKey } });
+      nav(`/stream?url=${encodeURIComponent(response.data)}`);
+    } catch (error) {
+      console.error('Error streaming object:', error);
+      nav('/error');
+    }
+  };
 
   return (
     <div className='Home'>
@@ -51,19 +60,9 @@ function Home() {
         {items.map((item) => (
           <Cards
             key={item.Key}
-            title={item.Key}
+            title={item.Key.substring(0, item.Key.indexOf("."))}
             thumbnail={thumbnails[item.Key]}
-            redirectFunction={() => {
-              axios.post(`${API_BASE_URL}/streamObject`, null, { headers: { 'url': item.Key } })
-                .then((response) => {
-                  console.log(response.data);
-                  nav('/stream', { state: { url: response.data } });
-                })
-                .catch(error => {
-                  console.error('Error streaming object:', error);
-                  nav('/error');
-                });
-            }}
+            redirectFunction={() => handleCardClick(item.Key)}
           />
         ))}
       </div>

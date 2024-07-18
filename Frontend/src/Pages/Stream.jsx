@@ -1,16 +1,37 @@
-import React from 'react'
-import { useLocation } from 'react-router-dom'; 
-import Player from '../Components/VideoPlayer/Player'
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Player from '../Components/VideoPlayer/Player';
 import SearchBox from '../Components/Search Box/SearchBox';
-import "./Stream.css"
+import "./Stream.css";
+
 function Stream() {
-let location = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const videoUrl = queryParams.get('url');
+
+  const [url, setUrl] = useState(null);
+
+  useEffect(() => {
+    if (videoUrl) {
+      setUrl(videoUrl);
+    } else {
+      navigate('/error');
+    }
+  }, [videoUrl, navigate]);
+
+  if (!url) {
+    return <div>Error: No video URL provided</div>;
+  }
+
   return (
     <>
-    <SearchBox />
-    <div className='Streaming'><Player link={location.state.url}/></div>
+      <SearchBox />
+      <div className='Streaming'>
+        <Player link={url} />
+      </div>
     </>
-  )
+  );
 }
 
-export default Stream
+export default Stream;
