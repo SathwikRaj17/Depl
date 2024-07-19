@@ -23,15 +23,16 @@ function Home() {
   useEffect(() => {
     const fetchItemsAndThumbnails = async () => {
       try {
-        const response = await axios.get("/api/objectList");
+        const response = await axios.get("/api/objectlist");
         const items = response.data;
         setItems(items);
 
         const thumbnailsData = {};
-        for (const item of items) {
+        await Promise.all(items.map(async (item) => {
           const url = item.Key.substring(0, item.Key.indexOf(".")) + ".jpg";
-          thumbnailsData[item.Key] = await fetchThumbnail(url);
-        }
+          const thumbnail = await fetchThumbnail(url);
+          thumbnailsData[item.Key] = thumbnail;
+        }));
         setThumbnails(thumbnailsData);
       } catch (error) {
         console.error('Error fetching items:', error);
