@@ -192,6 +192,26 @@ app.get("/api/objectList", async (req, res) => {
     }
 });
 
+app.post("/api/searchResult", async (req, res) => {
+    let key = req.headers.searchword;
+    key=key.toLowerCase();
+    try {
+        let objects=await getobjectlist();
+        const results=[]
+        objects.forEach(obj=>
+        {
+            let title=obj.Key.toLowerCase()
+            if(title.includes(key))
+            {
+                results.push(obj)
+            }
+        })
+        res.send(results)
+    } catch (error) {
+        res.status(500).send("Error fetching object");
+    }
+});
+
 app.get("/", (req, res) => {
     res.sendFile(path.join(dirname, 'test.html'));
 });
