@@ -16,6 +16,7 @@ function Stream() {
     if (videoUrl) {
       setUrl(videoUrl);
     } else {
+      // Redirect to error page or handle the error
       navigate('/error');
     }
   }, [videoUrl, navigate]);

@@ -1,15 +1,15 @@
 import express from "express";
-import cors from "cors";
+import cors from 'cors';
 import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import axios from "axios";
-import fs from 'fs/promises'; 
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import bodyParser from "body-parser";
 import dotenv from 'dotenv';
-
 
 dotenv.config();
 
@@ -18,10 +18,14 @@ const dirname = path.dirname(filename);
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors()); // Allow every origin
+app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 const uploadDir = './uploads';
+
+if (!existsSync(uploadDir)) {
+    await fs.mkdir(uploadDir);
+}
 
 const client = new S3Client({
     region: process.env.AWS_REGION,
@@ -36,9 +40,9 @@ const storage = multer.diskStorage({
         cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-        const title = req.body.title || 'default-title'; 
-        const suffix=`_${Date.now()}_`
-        cb(null, title+ suffix + path.extname(file.originalname));
+        const title = req.body.title || 'default-title';
+        const suffix = `_${Date.now()}_`;
+        cb(null, title + suffix + path.extname(file.originalname));
     }
 });
 
@@ -46,15 +50,15 @@ const upload = multer({ storage: storage });
 
 async function putobj(key, content_type, filetype) {
     let bucketName = '';
-    if(filetype === "Thumbnail") {
-        let k1=key.substring(0,key.indexOf("_"))
-        let k2=key.substring(key.lastIndexOf("_")+1,key.length)
-        key=(k1+k2)
+    if (filetype === "Thumbnail") {
+        let k1 = key.substring(0, key.indexOf("_"));
+        let k2 = key.substring(key.lastIndexOf("_") + 1, key.length);
+        key = (k1 + k2);
         bucketName = process.env.S3_THUMBNAILBUCKET_NAME;
-    } else if(filetype === "Video") {
-        let k1=key.substring(0,key.indexOf("_"))
-        let k2=key.substring(key.lastIndexOf("_")+1,key.length)
-        key=(k1+k2)
+    } else if (filetype === "Video") {
+        let k1 = key.substring(0, key.indexOf("_"));
+        let k2 = key.substring(key.lastIndexOf("_") + 1, key.length);
+        key = (k1 + k2);
         bucketName = process.env.S3_VIDEOBUCKET_NAME;
     }
 
@@ -63,7 +67,7 @@ async function putobj(key, content_type, filetype) {
         Key: key,
         ContentType: content_type
     });
-    
+
     const url = await getSignedUrl(client, command, { expiresIn: 3600 });
     return url;
 }
@@ -78,8 +82,8 @@ async function uploader(files) {
             try {
                 await axios.put(url, data);
                 await fs.unlink(fileData.path);
-            } catch (error) {
-                console.error(`Error occurred while uploading file ${fileData.originalname}:`, error);
+            } catch (uploadError) {
+                console.error(`Error occurred while uploading file ${fileData.originalname}:`, uploadError);
             }
         } catch (fileError) {
             console.error(`Error occurred while handling file ${fileData.originalname}:`, fileError);
@@ -89,7 +93,16 @@ async function uploader(files) {
 
 async function getobj(key) {
     const command = new GetObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME,
+        Bucket: process.env.S3_VIDEOBUCKET_NAME,
+        Key: key,
+    });
+    const url = await getSignedUrl(client, command, { expiresIn: 3600 });
+    return url;
+}
+
+async function getThumbnail(key) {
+    const command = new GetObjectCommand({
+        Bucket: process.env.S3_THUMBNAILBUCKET_NAME,
         Key: key,
     });
     const url = await getSignedUrl(client, command, { expiresIn: 3600 });
@@ -139,7 +152,7 @@ app.post("/api/getObject", async (req, res) => {
         const link = await objectgetter(key);
         res.send(link);
     } catch (error) {
-        res.status(500).send("Error getting object");
+        res.status(500).send({ message: "Error getting object", error: error.message });
     }
 });
 
@@ -149,7 +162,7 @@ app.post("/api/getThumbnail", async (req, res) => {
         const link = await getThumbnail(key);
         res.send(link);
     } catch (error) {
-        res.status(500).send("Error getting object");
+        res.status500.send({ message: "Error getting thumbnail", error: error.message });
     }
 });
 
@@ -159,7 +172,7 @@ app.post("/api/streamObject", async (req, res) => {
         const link = await objectgetter(key);
         res.send(link);
     } catch (error) {
-        res.status(500).send("Error streaming object");
+        res.status(500).send({ message: "Error streaming object", error: error.message });
     }
 });
 
@@ -168,7 +181,7 @@ app.get("/api/objectlist", async (req, res) => {
         const objlist = await getobjectlist();
         res.send(objlist);
     } catch (error) {
-        res.status(500).send("Error getting object list");
+        res.status(500).send({ message: "Error getting object list", error: error.message });
     }
 });
 

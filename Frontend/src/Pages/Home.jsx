@@ -5,15 +5,14 @@ import SearchBar from '../Components/Search Box/SearchBox';
 import Cards from '../Components/Cards/Cards';
 import './Home.css';
 
-const API_BASE_URL = "https://depl-1.onrender.com/api";
-
-function fetchThumbnail(url) {
-  return axios.post(`${API_BASE_URL}/getObject`, null, { headers: { 'url': url } })
-    .then(response => response.data)
-    .catch(error => {
-      console.error('Error fetching thumbnail:', error);
-      return null;
-    });
+async function fetchThumbnail(url) {
+  try {
+    const response = await axios.post('/api/getThumbnail', null, { headers: { 'url': url } });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching thumbnail:', error);
+    return null;
+  }
 }
 
 function Home() {
