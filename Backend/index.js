@@ -27,6 +27,13 @@ if (!existsSync(uploadDir)) {
     await fs.mkdir(uploadDir);
 }
 
+['AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'S3_THUMBNAILBUCKET_NAME', 'S3_VIDEOBUCKET_NAME'].forEach((envVar) => {
+    if (!process.env[envVar]) {
+        console.error(`Error: Missing required environment variable ${envVar}`);
+        process.exit(1);
+    }
+});
+
 const client = new S3Client({
     region: process.env.AWS_REGION,
     credentials: {
@@ -152,7 +159,7 @@ app.post("/api/getObject", async (req, res) => {
         const link = await objectgetter(key);
         res.send(link);
     } catch (error) {
-        res.status(500).send({ message: "Error getting object", error: error.message });
+        res.status(500).send("Error getting object");
     }
 });
 
@@ -162,7 +169,7 @@ app.post("/api/getThumbnail", async (req, res) => {
         const link = await getThumbnail(key);
         res.send(link);
     } catch (error) {
-        res.status500.send({ message: "Error getting thumbnail", error: error.message });
+        res.status(500).send("Error getting object");
     }
 });
 
@@ -172,16 +179,16 @@ app.post("/api/streamObject", async (req, res) => {
         const link = await objectgetter(key);
         res.send(link);
     } catch (error) {
-        res.status(500).send({ message: "Error streaming object", error: error.message });
+        res.status(500).send("Error streaming object");
     }
 });
 
-app.get("/api/objectlist", async (req, res) => {
+app.get("/api/objectList", async (req, res) => { 
     try {
         const objlist = await getobjectlist();
         res.send(objlist);
     } catch (error) {
-        res.status(500).send({ message: "Error getting object list", error: error.message });
+        res.status(500).send("Error getting object list");
     }
 });
 
