@@ -2,22 +2,32 @@ import React, { useState } from 'react';
 import './SearchBox.css';
 import search from '../../assets/Search-logo.svg';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function SearchBox() {
   const [searchContent, setSearchContent] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const searchHandler = async (event) => {
     event.preventDefault();
     try {
       const res = await axios.post(
-        `http://localhost:3000/api/searchResult`,
+        `https://depl-1.onrender.com/api/searchResult`,
         null,
         { headers: { searchWord: searchContent } }
       );
       console.log(res.data);
-      navigate(`/result?data=${encodeURIComponent(JSON.stringify(res.data))}`);
+
+      const queryParams = new URLSearchParams({
+        data: JSON.stringify(res.data)
+      }).toString();
+
+      if (location.pathname === '/result') {
+        navigate(`${location.pathname}?${queryParams}`, { replace: true });
+      } else {
+        navigate(`/result?${queryParams}`);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     }
