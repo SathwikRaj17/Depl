@@ -61,3 +61,15 @@ img {
   
   transition: ease-in 0.2s;
 }
+
+@media(max-width:600px)
+{
+  .searchBox .searchBtn
+  {
+    width: 30%;
+  }
+  .searchBox input
+  {
+    width: 70%;
+  }
+}
