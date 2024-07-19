@@ -58,7 +58,7 @@ function Home() {
   return (
     <div className='Home'>
       <SearchBar />
-      <div className='Container'>
+      <div className='cardHolder'>
         {items.map((item) => (
           <Cards
             key={item.Key}

@@ -16,6 +16,25 @@ html {
     background-color: #222223;
 }
 
+.Home
+ {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+ }
+ .cardHolder
+ {
+    width: 80%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    margin-top: 3%;
+    row-gap: 20px;
+    column-gap: 8%;
+ }
+
 @media(max-width: 600px) {
     .Container
 {
@@ -27,4 +46,8 @@ html {
     justify-content: center;
     align-items: center;
 }
+ .Home
+ {
+    background: red;
+ }
   }
