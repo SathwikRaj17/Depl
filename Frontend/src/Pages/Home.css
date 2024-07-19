@@ -29,7 +29,7 @@ html {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
+    justify-content: start;
     margin-top: 3%;
     row-gap: 20px;
     column-gap: 8%;
@@ -45,5 +45,12 @@ html {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+}
+.cardHolder
+{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
 }
   }

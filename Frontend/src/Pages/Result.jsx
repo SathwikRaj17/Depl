@@ -70,7 +70,7 @@ function Result() {
   return (
     <div className='Home'>
       <SearchBar />
-      <div className='Container'>
+      <div className='cardHolder'>
         {state.items.map((item) => (
           <Cards
             key={item.Key}
