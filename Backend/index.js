@@ -1,201 +1,75 @@
-import express from "express";
-import cors from 'cors';
-import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
-import axios from "axios";
-import fs from 'fs/promises';
-import { existsSync } from 'fs';
-import bodyParser from "body-parser";
-import dotenv from 'dotenv';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import SearchBar from '../Components/Search Box/SearchBox';
+import Cards from '../Components/Cards/Cards';
+import './Home.css';
 
-dotenv.config();
+const targeturl="https://depl-1.onrender.com"
 
-const filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(filename);
-const app = express();
-const port = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(bodyParser.urlencoded({ extended: false }));
-
-const uploadDir = './uploads';
-
-if (!existsSync(uploadDir)) {
-    await fs.mkdir(uploadDir);
+async function fetchThumbnail(url) {
+  try {
+    const response = await axios.post(`${targeturl}/api/getThumbnail`, null, { headers: { 'url': url } });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching thumbnail:', error);
+    return null;
+  }
 }
 
-['AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'S3_THUMBNAILBUCKET_NAME', 'S3_VIDEOBUCKET_NAME'].forEach((envVar) => {
-    if (!process.env[envVar]) {
-        console.error(`Error: Missing required environment variable ${envVar}`);
-        process.exit(1);
+function Home() {
+  const nav = useNavigate();
+  const [items, setItems] = useState([]);
+  const [thumbnails, setThumbnails] = useState({});
+
+  useEffect(() => {
+    const fetchItemsAndThumbnails = async () => {
+      try {
+        const response = await axios.get(`${targeturl}/api/objectlist`);
+        const items = response.data;
+        setItems(items);
+
+        const thumbnailsData = {};
+        await Promise.all(items.map(async (item) => {
+          const url = item.Key.substring(0, item.Key.indexOf(".")) + ".jpg";
+          const thumbnail = await fetchThumbnail(url);
+          thumbnailsData[item.Key] = thumbnail;
+        }));
+        setThumbnails(thumbnailsData);
+      } catch (error) {
+        console.error('Error fetching items:', error);
+        nav('/error');
+      }
+    };
+
+    fetchItemsAndThumbnails();
+  }, [nav]);
+
+  const handleCardClick = async (itemKey) => {
+    try {
+      const response = await axios.post(`${targeturl}/api/streamObject`, null, { headers: { 'url': itemKey } });
+      nav(`/stream?url=${encodeURIComponent(response.data)}`);
+    } catch (error) {
+      console.error('Error streaming object:', error);
+      nav('/error');
     }
-});
+  };
 
-const client = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    }
-});
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        const title = req.body.title || 'default-title';
-        const suffix = `_${Date.now()}_`;
-        cb(null, title + suffix + path.extname(file.originalname));
-    }
-});
-
-const upload = multer({ storage: storage });
-
-async function putobj(key, content_type, filetype) {
-    let bucketName = '';
-    if (filetype === "Thumbnail") {
-        let k1 = key.substring(0, key.indexOf("_"));
-        let k2 = key.substring(key.lastIndexOf("_") + 1, key.length);
-        key = (k1 + k2);
-        bucketName = process.env.S3_THUMBNAILBUCKET_NAME;
-    } else if (filetype === "Video") {
-        let k1 = key.substring(0, key.indexOf("_"));
-        let k2 = key.substring(key.lastIndexOf("_") + 1, key.length);
-        key = (k1 + k2);
-        bucketName = process.env.S3_VIDEOBUCKET_NAME;
-    }
-
-    const command = new PutObjectCommand({
-        Bucket: bucketName,
-        Key: key,
-        ContentType: content_type
-    });
-
-    const url = await getSignedUrl(client, command, { expiresIn: 3600 });
-    return url;
+  return (
+    <div className='Home'>
+      <SearchBar />
+      <div className='Container'>
+        {items.map((item) => (
+          <Cards
+            key={item.Key}
+            title={item.Key.substring(0, item.Key.indexOf("."))}
+            thumbnail={thumbnails[item.Key]}
+            redirectFunction={() => handleCardClick(item.Key)}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
-async function uploader(files) {
-    for (const fileData of files) {
-        try {
-            const filetype = fileData.fieldname;
-            const data = await fs.readFile(fileData.path);
-            const url = await putobj(`${fileData.filename}`, fileData.mimetype, filetype);
-
-            try {
-                await axios.put(url, data);
-                await fs.unlink(fileData.path);
-            } catch (uploadError) {
-                console.error(`Error occurred while uploading file ${fileData.originalname}:`, uploadError);
-            }
-        } catch (fileError) {
-            console.error(`Error occurred while handling file ${fileData.originalname}:`, fileError);
-        }
-    }
-}
-
-async function getobj(key) {
-    const command = new GetObjectCommand({
-        Bucket: process.env.S3_VIDEOBUCKET_NAME,
-        Key: key,
-    });
-    const url = await getSignedUrl(client, command, { expiresIn: 3600 });
-    return url;
-}
-
-async function getThumbnail(key) {
-    const command = new GetObjectCommand({
-        Bucket: process.env.S3_THUMBNAILBUCKET_NAME,
-        Key: key,
-    });
-    const url = await getSignedUrl(client, command, { expiresIn: 3600 });
-    return url;
-}
-
-async function objectgetter(key) {
-    try {
-        const link = await getobj(key);
-        return link;
-    } catch (error) {
-        console.error("Error getting object:", error);
-        throw error;
-    }
-}
-
-async function getobjectlist() {
-    try {
-        const command = new ListObjectsV2Command({
-            Bucket: process.env.S3_VIDEOBUCKET_NAME,
-        });
-        const list = await client.send(command);
-        return list.Contents;
-    } catch (error) {
-        console.error("Error getting object list:", error);
-        throw error;
-    }
-}
-
-app.post('/api/upload', upload.fields([{ name: 'Video' }, { name: 'Thumbnail' }]), async (req, res) => {
-    if (!req.files) {
-        return res.status(400).send({ message: 'No files were uploaded.' });
-    }
-
-    try {
-        await uploader(req.files.Video || []);
-        await uploader(req.files.Thumbnail || []);
-        res.send({ message: 'Files uploaded successfully!', files: req.files });
-    } catch (error) {
-        res.status(500).send({ message: 'Error uploading files', error: error.message });
-    }
-});
-
-app.post("/api/getObject", async (req, res) => {
-    const key = req.headers.url;
-    try {
-        const link = await objectgetter(key);
-        res.send(link);
-    } catch (error) {
-        res.status(500).send("Error getting object");
-    }
-});
-
-app.post("/api/getThumbnail", async (req, res) => {
-    const key = req.headers.url;
-    try {
-        const link = await getThumbnail(key);
-        res.send(link);
-    } catch (error) {
-        res.status(500).send("Error getting object");
-    }
-});
-
-app.post("/api/streamObject", async (req, res) => {
-    const key = req.headers.url;
-    try {
-        const link = await objectgetter(key);
-        res.send(link);
-    } catch (error) {
-        res.status(500).send("Error streaming object");
-    }
-});
-
-app.get("/api/objectList", async (req, res) => { 
-    try {
-        const objlist = await getobjectlist();
-        res.send(objlist);
-    } catch (error) {
-        res.status(500).send("Error getting object list");
-    }
-});
-
-app.get("/", (req, res) => {
-    res.sendFile(path.join(dirname, 'test.html'));
-});
-
-app.listen(port, () => {
-    console.log(`Listening on port ${port}`);
-});
+export default Home;
