@@ -6,13 +6,11 @@
     <title>Document</title>
 </head>
 <body>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="upload_file" >
+    <form action="/api/upload" method="post" enctype="multipart/form-data">
+        <input type="text" name="title" >
+        <input type="file" name="Video" >
+        <input type="file" name="Thumbnail" >
         <button type="submit">Upload</button>
-    </form>
-    <form action="/getinfo" method="post">
-        <input type="text" name="objname">
-        <button type="submit">Get</button>
     </form>
     <script src="./index.js"></script>
 </body>
