@@ -5,9 +5,11 @@ import SearchBar from '../Components/Search Box/SearchBox';
 import Cards from '../Components/Cards/Cards';
 import './Home.css';
 
+const targeturl="https://depl-1.onrender.com"
+
 async function fetchThumbnail(url) {
   try {
-    const response = await axios.post('/api/getThumbnail', null, { headers: { 'url': url } });
+    const response = await axios.post(`${targeturl}/api/getThumbnail`, null, { headers: { 'url': url } });
     return response.data;
   } catch (error) {
     console.error('Error fetching thumbnail:', error);
@@ -23,7 +25,7 @@ function Home() {
   useEffect(() => {
     const fetchItemsAndThumbnails = async () => {
       try {
-        const response = await axios.get("/api/objectlist");
+        const response = await axios.get(`${targeturl}/api/objectlist`);
         const items = response.data;
         setItems(items);
 
@@ -45,7 +47,7 @@ function Home() {
 
   const handleCardClick = async (itemKey) => {
     try {
-      const response = await axios.post("/api/streamObject", null, { headers: { 'url': itemKey } });
+      const response = await axios.post(`${targeturl}/api/streamObject`, null, { headers: { 'url': itemKey } });
       nav(`/stream?url=${encodeURIComponent(response.data)}`);
     } catch (error) {
       console.error('Error streaming object:', error);
